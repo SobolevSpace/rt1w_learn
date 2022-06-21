@@ -3,6 +3,7 @@
 #include "color.h"
 #include "hittable_list.h"
 #include "sphere.h"
+#include "camera.h"
 
 #include <iostream>
 
@@ -21,15 +22,8 @@ int main(int, char**) {
     const double aspect_ratio = 16.0/9.0;
     const int image_width = 400;
     const int image_height = static_cast<int>(image_width/aspect_ratio);
-
-    double viewport_height = 2.0;
-    double viewport_width = viewport_height * aspect_ratio;
-    double focal_length = 1.0;
-
-    point3 origin = point3(0, 0, 0);
-    point3 horizontal = point3(viewport_width, 0, 0);
-    point3 vertical = point3(0, viewport_height, 0);
-    point3 lower_left_corner = origin - horizontal/2 - vertical/2 - vec3(0, 0, focal_length);
+    const int spp = 100;
+    camera cam;
 
     hittable_list world;
     world.add(make_shared<sphere>(point3(0, 0, -1), 0.5));
@@ -40,11 +34,13 @@ int main(int, char**) {
     for (int j=image_height-1;j>=0;j--) {
         std::cerr << "\rScanlines remaining: "<<j<<' '<<std::flush;
         for (int i=0;i<image_width;i++) {
-            double u = double(i)/(image_width-1);
-            double v = double(j)/(image_height-1);
-            ray r(origin, lower_left_corner + u*horizontal + v*vertical - origin);
-            color pixel_color = ray_color(r, world);
-            write_color(std::cout, pixel_color);
+            color pixel_color(0, 0, 0);
+            for (int _=0;_<spp;_++) {
+                double u = (i + random_double())/(image_width-1);
+                double v = (j + random_double())/(image_height-1);
+                pixel_color += ray_color(cam.get_ray(u, v), world);
+            }
+            write_color(std::cout, pixel_color, spp);
         }
     }
     std::cerr<<"\nDone.\n";
