@@ -9,6 +9,9 @@ void write_color(std::ostream& out, color pixel_color, int spp) {
     r /= spp;
     g /= spp;
     b /= spp;
+    r = sqrt(r);
+    g = sqrt(g);
+    b = sqrt(b);
     out<<static_cast<int>(clamp(256*r, 0, 255)) <<' '
     <<static_cast<int>(clamp(256*g, 0, 255)) << ' '
     <<static_cast<int>(clamp(256*b, 0, 255))<<'\n';

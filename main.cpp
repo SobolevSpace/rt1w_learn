@@ -8,10 +8,12 @@
 #include <iostream>
 
 
-color ray_color(const ray& r, const hittable& world) {
+color ray_color(const ray& r, const hittable& world, int depth) {
     hit_record hit_rec;
-    if (world.hit(r, 0, INF, hit_rec)) {
-        return 0.5*(hit_rec.normal+color(1, 1, 1));
+    if (depth <= 0) return color(0, 0, 0);
+
+    if (world.hit(r, 0.001, INF, hit_rec)) {
+        return 0.5*ray_color(ray(hit_rec.p, random_in_hemisphere(hit_rec.normal)), world, depth-1);
     }
     vec3 unit_direction = unit_vector(r.direction());
     double t = (unit_direction.y() + 1)*0.5;
@@ -23,6 +25,7 @@ int main(int, char**) {
     const int image_width = 400;
     const int image_height = static_cast<int>(image_width/aspect_ratio);
     const int spp = 100;
+    const int max_depth = 50;
     camera cam;
 
     hittable_list world;
@@ -38,7 +41,7 @@ int main(int, char**) {
             for (int _=0;_<spp;_++) {
                 double u = (i + random_double())/(image_width-1);
                 double v = (j + random_double())/(image_height-1);
-                pixel_color += ray_color(cam.get_ray(u, v), world);
+                pixel_color += ray_color(cam.get_ray(u, v), world, max_depth);
             }
             write_color(std::cout, pixel_color, spp);
         }

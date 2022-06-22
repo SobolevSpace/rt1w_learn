@@ -51,6 +51,14 @@ public:
         return sqrt(this->length_sqr());
     }
 
+    inline static vec3 random() {
+        return vec3(random_double(), random_double(), random_double());
+    }
+
+    inline static vec3 random(double t_min, double t_max) {
+        return vec3(random_double(t_min, t_max), random_double(t_min, t_max), random_double(t_min, t_max));
+    }
+
 };
 
 inline std::ostream& operator<<(std::ostream& out, const vec3& v) {
@@ -93,6 +101,23 @@ inline vec3 cross(const vec3& u, const vec3& v) {
 
 inline vec3 unit_vector(const vec3& v) {
     return v/v.length();
+}
+
+inline vec3 random_in_unit_sphere() {
+        while (true) {
+            vec3 p = vec3::random(-1, 1);
+            if (p.length_sqr() <= 1) return p;
+        }
+}
+
+inline vec3 random_unit_vector() {
+    return unit_vector(random_in_unit_sphere());
+}
+
+vec3 random_in_hemisphere(const vec3& normal) {
+    vec3 ret = random_in_unit_sphere();
+    if (dot(ret, normal) < 0) ret =  -ret;
+    return ret;
 }
 
 using point3 = vec3;
