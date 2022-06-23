@@ -59,6 +59,11 @@ public:
         return vec3(random_double(t_min, t_max), random_double(t_min, t_max), random_double(t_min, t_max));
     }
 
+    bool near_zero() const {
+        const double eps = 1e-8;
+        return fabs(e[0]) <= eps && fabs(e[1]) <= eps && fabs(e[2]) <= eps;
+    }
+
 };
 
 inline std::ostream& operator<<(std::ostream& out, const vec3& v) {
@@ -118,6 +123,10 @@ vec3 random_in_hemisphere(const vec3& normal) {
     vec3 ret = random_in_unit_sphere();
     if (dot(ret, normal) < 0) ret =  -ret;
     return ret;
+}
+
+vec3 reflect(const vec3& v, const vec3& n) {
+    return v - 2*dot(v, n)*n;
 }
 
 using point3 = vec3;
