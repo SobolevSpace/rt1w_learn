@@ -129,5 +129,12 @@ vec3 reflect(const vec3& v, const vec3& n) {
     return v - 2*dot(v, n)*n;
 }
 
+vec3 refract(const vec3& v_unit, const vec3& n_unit, double etai_over_etat) {
+    double cos_theta = fmin(dot(-v_unit, n_unit), 1.0);
+    vec3 r_out_prep = etai_over_etat * (v_unit + cos_theta * n_unit);
+    vec3 r_out_parallel = -sqrt(fabs(1-r_out_prep.length_sqr())) * n_unit;
+    return r_out_parallel + r_out_prep;
+}
+
 using point3 = vec3;
 using color = vec3;

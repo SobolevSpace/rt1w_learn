@@ -45,3 +45,34 @@ public:
         return dot(scatter_dir, hit_rec.normal) > 0;
     }
 };
+
+class dielectric: public material {
+public:
+    double ir;
+public:
+    dielectric(double _ir): ir(_ir) {}
+    virtual bool scatter(
+        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out
+    ) const override {
+        attenuation = color(1.0, 1.0, 1.0);
+        double refract_ratio = hit_rec.front_face?(1.0/ir):ir;
+        vec3 unit_v = unit_vector(r_in.direction());
+        double cos_theta = fmin(dot(-unit_v, hit_rec.normal), 1.0);
+        double sin_theta = sqrt(1 - cos_theta*cos_theta);
+        vec3 scatter_dir;
+        if (sin_theta * refract_ratio > 1.0 || reflectance(cos_theta, refract_ratio) > random_double()) {
+            scatter_dir = reflect(unit_v, hit_rec.normal);
+        } else {
+            scatter_dir = refract(unit_vector(r_in.direction()), hit_rec.normal, refract_ratio);
+        }
+        r_out = ray(hit_rec.p, scatter_dir);
+        return true;
+    }
+
+private:
+    static double reflectance(double cosine, double ref_idx) {
+        double r0 = (1-ref_idx)/(1+ref_idx);
+        r0 *= r0;
+        return r0 + (1-r0) * pow(1-cosine, 5);
+    }
+};
