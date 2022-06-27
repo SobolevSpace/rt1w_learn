@@ -31,12 +31,13 @@ public:
         vertical = focus_dist * viewport_height * v;
         lower_left_corner = origin - focus_dist * w - horizontal/2 - vertical/2;
     
-        lens_radius = focus_dist/2;
+        lens_radius = aperture/2;
     }
 
     ray get_ray(double s, double t) const {
-        vec3 rd = random_in_unit_disk();
+        vec3 rd = lens_radius * random_in_unit_disk();
         vec3 offset = u*rd.x() + v*rd.y();
-        return ray(origin + offset, lower_left_corner-origin + s*horizontal + t*vertical - offset);
+        return ray(origin + offset, 
+        lower_left_corner-origin + s*horizontal + t*vertical - offset);
     }
 };
