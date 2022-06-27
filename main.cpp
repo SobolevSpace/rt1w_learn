@@ -34,7 +34,13 @@ int main(int, char**) {
     const int spp = 100;
     const int max_depth = 50;
     double R = cos(PI/4);
-    camera cam(point3(-2,2,1), point3(0,0,-1), vec3(0,1,0), 90, aspect_ratio);
+    point3 lookfrom(3,3,2);
+    point3 lookat(0,0,-1);
+    vec3 vup(0,1,0);
+    double dist_to_focus = (lookfrom-lookat).length();
+    double aperture = 2.0;
+    camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
+    
     
     hittable_list world;
 
