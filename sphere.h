@@ -8,6 +8,14 @@ public:
     double radius;
     shared_ptr<material> mat_ptr;
 
+private:
+    static void get_sphere_uv(const point3& p, double& u, double& v) {
+        double theta = acos(-p.y());
+        double phi = atan2(-p.z(), p.x()) + PI;
+        u = phi/(2*PI);
+        v = theta/PI;
+    }
+
 public:
     sphere():radius(0) {}
     sphere(const point3& _center, double r, shared_ptr<material> m_ptr):center(_center), radius(r), mat_ptr(m_ptr) {}
@@ -39,6 +47,7 @@ bool sphere::hit(const ray& r, double t_min, double t_max, hit_record& rec) cons
     rec.p = r.at(root);
     vec3 out_normal = (rec.p - center)/radius;
     rec.set_face_normal(r, out_normal);
+    get_sphere_uv(out_normal, rec.u, rec.v);
     rec.mat_ptr = mat_ptr;
     return true;
 }

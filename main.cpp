@@ -10,11 +10,20 @@
 
 #include <iostream>
 
+hittable_list two_spheres() {
+    hittable_list world;
+    shared_ptr<texture> checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
+    world.add(make_shared<sphere>(point3(0, -10, 0), 10, make_shared<lambertian>(checker)));
+    world.add(make_shared<sphere>(point3(0, 10, 0), 10, make_shared<lambertian>(checker)));
+    
+    return world;
+}
+
 hittable_list random_scene() {
     hittable_list world;
 
-    auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
-    world.add(make_shared<sphere>(point3(0,-1000,0), 1000, ground_material));
+    shared_ptr<texture> checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
+    world.add(make_shared<sphere>(point3(0,-1000,0), 1000, make_shared<lambertian>(checker)));
 
     for (int a = -11; a < 11; a++) {
         for (int b = -11; b < 11; b++) {
@@ -80,16 +89,39 @@ int main(int, char**) {
     const int image_height = static_cast<int>(image_width/aspect_ratio);
     const int spp = 100;
     const int max_depth = 50;
-    double R = cos(PI/4);
-    point3 lookfrom(13,2,3);
-    point3 lookat(0,0,0);
-    vec3 vup(0,1,0);
+    
+    point3 lookfrom;
+    point3 lookat;
+    double vfov = 40.0;
+    double aperture = 0.0;
+    
+    hittable_list world;
+
+    switch(0) {
+        case 1: {
+            world = random_scene();
+            lookfrom = point3(13, 2, 3);
+            lookat = point3(0, 0, 0);
+            vfov = 20.0;
+            aperture = 0.1;
+            break;
+        }
+        
+        default:
+        case 2: {
+            world = two_spheres();
+            lookfrom = point3(13, 2, 3);
+            lookat = point3(0, 0, 0);
+            vfov = 20.0;
+            break;
+        }
+    }
+
+    vec3 vup(0, 1, 0);
     double dist_to_focus = 10.0;
-    double aperture = 0.1;
-    camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
+    camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
     
     
-    hittable_list world = random_scene();
 
     //auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
     //auto material_center = make_shared<lambertian>(color(0.1, 0.2, 0.5));

@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "hittable.h"
+#include "texture.h"
 
 struct hit_record;
 
@@ -14,9 +15,10 @@ public:
 
 class lambertian: public material {
 public:
-    color albedo;
+    shared_ptr<texture> albedo;
 public:
-    lambertian(color& _albedo): albedo(_albedo) {}
+    lambertian(const color& _color): albedo(make_shared<solid_color>(_color)) {}
+    lambertian(shared_ptr<texture> _albedo): albedo(_albedo) {}
 
     virtual bool scatter(
         const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out
@@ -24,7 +26,7 @@ public:
         vec3 scatter_dir = hit_rec.normal + random_unit_vector();
         if (scatter_dir.near_zero()) scatter_dir = hit_rec.normal;
         r_out = ray(hit_rec.p, scatter_dir, r_in.time());
-        attenuation = albedo;
+        attenuation = albedo->value(hit_rec.u, hit_rec.v, hit_rec.p);
         return true;
     }
 };
