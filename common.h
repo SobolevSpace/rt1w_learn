@@ -26,6 +26,10 @@ inline double random_double(double t_min, double t_max) {
     return t_min + random_double()*(t_max-t_min);
 }
 
+inline int random_int(int t_min, int t_max) {
+    return static_cast<int>(random_double(t_min, t_max+1));
+}
+
 inline double clamp(double t, double t_min, double t_max) {
     return t<t_min?t_min:(t>t_max?t_max:t);
 }

@@ -10,13 +10,15 @@ public:
     point3 lower_left_corner;
     vec3 w, u, v;
     double lens_radius;
+    double time0, time1;
 
 public:
     camera( point3 lookfrom, 
     point3 lookat, 
     vec3 up, 
     double vfov, double aspect_ratio,
-    double aperture, double focus_dist) {
+    double aperture, double focus_dist,
+    double _time0 = 0, double _time1 = 0) {
         
         const double theta = degree2radians(vfov);
         const double h = tan(theta/2);
@@ -32,12 +34,15 @@ public:
         lower_left_corner = origin - focus_dist * w - horizontal/2 - vertical/2;
     
         lens_radius = aperture/2;
+        time0 = _time0;
+        time1 = _time1;
     }
 
     ray get_ray(double s, double t) const {
         vec3 rd = lens_radius * random_in_unit_disk();
         vec3 offset = u*rd.x() + v*rd.y();
         return ray(origin + offset, 
-        lower_left_corner-origin + s*horizontal + t*vertical - offset);
+        lower_left_corner-origin + s*horizontal + t*vertical - offset,
+        random_double(time0, time1));
     }
 };

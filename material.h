@@ -23,7 +23,7 @@ public:
     ) const override {
         vec3 scatter_dir = hit_rec.normal + random_unit_vector();
         if (scatter_dir.near_zero()) scatter_dir = hit_rec.normal;
-        r_out = ray(hit_rec.p, scatter_dir);
+        r_out = ray(hit_rec.p, scatter_dir, r_in.time());
         attenuation = albedo;
         return true;
     }
@@ -40,7 +40,7 @@ public:
         const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out
     ) const override {
         vec3 scatter_dir = reflect(unit_vector(r_in.direction()), hit_rec.normal);
-        r_out = ray(hit_rec.p, scatter_dir + fuzz * random_unit_vector());
+        r_out = ray(hit_rec.p, scatter_dir + fuzz * random_unit_vector(), r_in.time());
         attenuation = albedo;
         return dot(scatter_dir, hit_rec.normal) > 0;
     }
@@ -65,7 +65,7 @@ public:
         } else {
             scatter_dir = refract(unit_vector(r_in.direction()), hit_rec.normal, refract_ratio);
         }
-        r_out = ray(hit_rec.p, scatter_dir);
+        r_out = ray(hit_rec.p, scatter_dir, r_in.time());
         return true;
     }
 
