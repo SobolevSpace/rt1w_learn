@@ -74,6 +74,14 @@ hittable_list two_perlin_spheres() {
     return objects;
 }
 
+hittable_list earth() {
+    hittable_list objects;
+    shared_ptr<texture> earthtex = make_shared<image_texture>("./resource/earthmap.jpg");
+    shared_ptr<material> earthmat = make_shared<lambertian>(earthtex);
+    objects.add(make_shared<sphere>(point3(0, 0, 0), 2, earthmat));
+    return objects;
+}
+
 color ray_color(const ray& r, const hittable& world, int depth) {
     hit_record hit_rec;
     if (depth <= 0) return color(0, 0, 0);
@@ -123,9 +131,17 @@ int main(int, char**) {
             break;
         }
         
-        default:
         case 3: {
             world = two_perlin_spheres();
+            lookfrom = point3(13, 2, 3);
+            lookat = point3(0, 0, 0);
+            vfov = 20.0;
+            break;
+        }
+
+        default:
+        case 4: {
+            world = earth();
             lookfrom = point3(13, 2, 3);
             lookat = point3(0, 0, 0);
             vfov = 20.0;
