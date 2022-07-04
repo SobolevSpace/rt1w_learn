@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "perlin.h"
 
 class texture{
 public:
@@ -35,5 +36,18 @@ public:
         double sines = sin(10*p.x())*sin(10*p.y())*sin(10*p.z());
         if (sines < 0) return odd->value(u, v, p);
         else return even->value(u, v, p);
+    }
+};
+
+class noise_texture: public texture {
+public:
+    perlin noise;
+    double scale;
+
+    noise_texture(): noise() {}
+    noise_texture(double _scale): scale(_scale) {}
+
+    virtual color value(double u, double v, const point3& p) const override {
+        return color(1, 1, 1)*noise.noise(scale*p);
     }
 };
