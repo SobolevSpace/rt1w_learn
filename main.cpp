@@ -5,6 +5,7 @@
 #include "sphere.h"
 #include "moving_sphere.h"
 #include "camera.h"
+#include "aarect.h"
 
 #include "material.h"
 
@@ -82,40 +83,51 @@ hittable_list earth() {
     return objects;
 }
 
-color ray_color(const ray& r, const hittable& world, int depth) {
+hittable_list simple_light() {
+    hittable_list objects;
+    shared_ptr<texture> pertext = make_shared<noise_texture>(4);
+    objects.add(make_shared<sphere>(point3(0,-1000,0), 1000, make_shared<lambertian>(pertext)));
+    objects.add(make_shared<sphere>(point3(0, 2, 0), 2, make_shared<lambertian>(pertext)));
+    
+    shared_ptr<material> difflight = make_shared<diffuse_light>(color(4, 4, 4));
+    objects.add(make_shared<xy_rect>(3, 5, 1, 3, -2, difflight));
+    return objects;
+}
+
+color ray_color(const ray& r, const color& bg, const hittable& world, int depth) {
     hit_record hit_rec;
     if (depth <= 0) return color(0, 0, 0);
 
-    if (world.hit(r, 0.001, INF, hit_rec)) {
-        ray scattered;
-        color attenuation;
-        if (hit_rec.mat_ptr->scatter(r, hit_rec, attenuation, scattered)) {
-            return attenuation * ray_color(scattered, world, depth-1);
-        }
-        return color(0, 0, 0);
+    if (!world.hit(r, 0.001, INF, hit_rec)) return bg;
+
+    ray scattered;
+    color attenuation;
+    color emitted = hit_rec.mat_ptr->emitted(hit_rec.u, hit_rec.v, hit_rec.p);
+
+    if (!hit_rec.mat_ptr->scatter(r, hit_rec, attenuation, scattered)) {
+        return emitted;
     }
-    vec3 unit_direction = unit_vector(r.direction());
-    double t = (unit_direction.y() + 1)*0.5;
-    return (1-t)*vec3(1, 1, 1) + t*vec3(0.5, 0.7, 1);
+    return emitted + attenuation * ray_color(scattered, bg, world, depth-1);
 }
 
 int main(int, char**) {
     const double aspect_ratio = 16.0/9.0;
     const int image_width = 400;
     const int image_height = static_cast<int>(image_width/aspect_ratio);
-    const int spp = 100;
+    int spp = 100;
     const int max_depth = 50;
     
     point3 lookfrom;
     point3 lookat;
     double vfov = 40.0;
     double aperture = 0.0;
-    
+    color background(0, 0, 0);
     hittable_list world;
 
     switch(0) {
         case 1: {
             world = random_scene();
+            background = color(0.7, 0.8, 1);
             lookfrom = point3(13, 2, 3);
             lookat = point3(0, 0, 0);
             vfov = 20.0;
@@ -125,6 +137,7 @@ int main(int, char**) {
         
         case 2: {
             world = two_spheres();
+            background = color(0.7, 0.8, 1);
             lookfrom = point3(13, 2, 3);
             lookat = point3(0, 0, 0);
             vfov = 20.0;
@@ -133,6 +146,16 @@ int main(int, char**) {
         
         case 3: {
             world = two_perlin_spheres();
+            background = color(0.7, 0.8, 1);
+            lookfrom = point3(13, 2, 3);
+            lookat = point3(0, 0, 0);
+            vfov = 20.0;
+            break;
+        }
+
+        case 4: {
+            world = earth();
+            background = color(0.7, 0.8, 1);
             lookfrom = point3(13, 2, 3);
             lookat = point3(0, 0, 0);
             vfov = 20.0;
@@ -140,12 +163,18 @@ int main(int, char**) {
         }
 
         default:
-        case 4: {
-            world = earth();
-            lookfrom = point3(13, 2, 3);
-            lookat = point3(0, 0, 0);
+        case 5: {
+            world = simple_light();
+            spp = 400;
+            background = color(0, 0, 0);
+            lookfrom = point3(26, 3, 6);
+            lookat = point3(0, 2, 0);
             vfov = 20.0;
             break;
+        }
+
+        case 6: {
+
         }
     }
 
@@ -176,7 +205,7 @@ int main(int, char**) {
             for (int _=0;_<spp;_++) {
                 double u = (i + random_double())/(image_width-1);
                 double v = (j + random_double())/(image_height-1);
-                pixel_color += ray_color(cam.get_ray(u, v), world, max_depth);
+                pixel_color += ray_color(cam.get_ray(u, v), background, world, max_depth);
             }
             write_color(std::cout, pixel_color, spp);
         }
