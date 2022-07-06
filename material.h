@@ -104,3 +104,19 @@ public:
         return emit->value(u, v, p);
     }
 };
+
+class isotropic: public material {
+public:
+    shared_ptr<texture> albedo;
+public:
+    isotropic(color _color): albedo(make_shared<solid_color>(_color)) {}
+    isotropic(shared_ptr<texture> _albedo): albedo(_albedo) {}
+    
+    virtual bool scatter(
+        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out
+    ) const override {
+        r_out = ray(hit_rec.p, random_in_unit_sphere(), r_in.time());
+        attenuation = albedo->value(hit_rec.u, hit_rec.v, hit_rec.p);
+        return true;
+    }
+};

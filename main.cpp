@@ -7,8 +7,10 @@
 #include "camera.h"
 #include "aarect.h"
 #include "box.h"
+#include "bvh.h"
 
 #include "material.h"
+#include "constant_medium.h"
 
 #include <iostream>
 
@@ -120,6 +122,89 @@ hittable_list cornell_box() {
     return objects;
 }
 
+hittable_list cornell_smoke() {
+    hittable_list objects;
+    shared_ptr<material> red = make_shared<lambertian>(color(0.65, 0.05, 0.05));
+    shared_ptr<material> green = make_shared<lambertian>(color(0.12, 0.45, 0.15));
+    shared_ptr<material> white = make_shared<lambertian>(color(0.73, 0.73, 0.73));
+    shared_ptr<material> light = make_shared<diffuse_light>(color(7, 7, 7));
+    
+    objects.add(make_shared<yz_rect>(0, 555, 0, 555, 555, green));
+    objects.add(make_shared<yz_rect>(0, 555, 0, 555, 0, red));
+    objects.add(make_shared<xz_rect>(113, 443, 127, 432, 554, light));
+    objects.add(make_shared<xz_rect>(0, 555, 0, 555, 0, white));
+    objects.add(make_shared<xz_rect>(0, 555, 0, 555, 555, white));
+    objects.add(make_shared<xy_rect>(0, 555, 0, 555, 555, white));
+
+    shared_ptr<hittable> box1 = make_shared<box>(point3(0, 0, 0), point3(165, 330, 165), white);
+    shared_ptr<hittable> box2 = make_shared<box>(point3(0, 0, 0), point3(165, 165, 165), white);
+    box1 = make_shared<rotate_y>(box1, 15);
+    box1 = make_shared<translate>(box1, vec3(265, 0, 295));
+    box2 = make_shared<rotate_y>(box2, -18);
+    box2 = make_shared<translate>(box2, vec3(130, 0, 65));
+    objects.add(make_shared<constant_medium>(box1, 0.01, color(0, 0, 0)));
+    objects.add(make_shared<constant_medium>(box2, 0.01, color(1, 1, 1)));
+    return objects;
+}
+
+hittable_list final_scene() {
+    hittable_list boxes1;
+    shared_ptr<material> ground = make_shared<lambertian>(color(0.48, 0.83, 0.53));
+
+    const int boxes_per_side = 20;
+    for (int i=0;i<boxes_per_side;i++) {
+        for (int j=0;j<boxes_per_side;j++) {
+            double w = 100.0, x0 = -1000.0 + i*w, z0 = -1000.0+j*w;
+            double y0 = 0, x1 = x0+w, y1 = random_double(1, 101), z1 = z0+w;
+
+            boxes1.add(make_shared<box>(point3(x0, y0, z0), point3(x1, y1, z1), ground));
+        }
+    }
+
+    hittable_list objects;
+    objects.add(make_shared<bvh_node>(boxes1, 0, 1));
+
+    shared_ptr<material> light = make_shared<diffuse_light>(color(7, 7, 7));
+    objects.add(make_shared<xz_rect>(123, 423, 147, 412, 554, light));
+
+    point3 center1 = point3(400, 400, 200);
+    point3 center2 = center1 + vec3(30, 0, 0);
+    shared_ptr<material> moving_sphere_material = make_shared<lambertian>(color(0.7, 0.3, 0.1));
+    objects.add(make_shared<moving_sphere>(center1, center2, 0, 1, 50, moving_sphere_material));
+    
+    objects.add(make_shared<sphere>(point3(260, 150, 45), 50, make_shared<dielectric>(1.5)));
+    objects.add(make_shared<sphere>(
+        point3(0, 150, 145), 50, make_shared<metal>(color(0.8, 0.8, 0.9), 1.0)
+    ));
+
+    shared_ptr<hittable> boundary = make_shared<sphere>(point3(360, 150, 145), 70, make_shared<dielectric>(1.5));
+    objects.add(boundary);
+    objects.add(make_shared<constant_medium>(boundary, 0.2, color(0.2, 0.4, 0.9)));
+
+    boundary = make_shared<sphere>(point3(0, 0, 0), 5000, make_shared<dielectric>(1.5));
+    objects.add(make_shared<constant_medium>(boundary, 0.0001, color(1, 1, 1)));
+
+    shared_ptr<material> emat = make_shared<lambertian>(make_shared<image_texture>("./resource/earthmap.jpg"));
+    objects.add(make_shared<sphere>(point3(400, 200, 400), 100, emat));
+
+    shared_ptr<texture> pertext = make_shared<noise_texture>(0.1);
+    objects.add(make_shared<sphere>(point3(220, 280, 300), 80, make_shared<lambertian>(pertext)));
+
+    hittable_list boxes2;
+    shared_ptr<material> white = make_shared<lambertian>(color(.73, .73, .73));
+    int ns = 1000;
+    for (int j=0;j<ns;j++) {
+        boxes2.add(make_shared<sphere>(point3::random(0, 165), 10, white));
+    }
+    objects.add(make_shared<translate>(
+        make_shared<rotate_y>(
+            make_shared<bvh_node>(boxes2, 0, 1), 15
+        ), vec3(-100, 270, 395)
+    ));
+    return objects;
+}
+
+
 color ray_color(const ray& r, const color& bg, const hittable& world, int depth) {
     hit_record hit_rec;
     if (depth <= 0) return color(0, 0, 0);
@@ -197,7 +282,6 @@ int main(int, char**) {
             break;
         }
 
-        default:
         case 6: {
             world = cornell_box();
             aspect_ratio = 1.0;
@@ -205,6 +289,31 @@ int main(int, char**) {
             spp = 200;
             background = color(0, 0, 0);
             lookfrom = point3(278, 278, -800);
+            lookat = point3(278, 278, 0);
+            vfov = 40.0;
+            break;
+        }
+
+        case 7: {
+            world = cornell_smoke();
+            aspect_ratio = 1.0;
+            image_width = 600;
+            spp = 200;
+            background = color(0, 0, 0);
+            lookfrom = point3(278, 278, -800);
+            lookat = point3(278, 278, 0);
+            vfov = 40.0;
+            break;
+        }
+
+        default:
+        case 8: {
+            world = final_scene();
+            aspect_ratio = 1.0;
+            image_width = 800;
+            spp = 10000;
+            background = color(0, 0, 0);
+            lookfrom = point3(478, 278, -600);
             lookat = point3(278, 278, 0);
             vfov = 40.0;
             break;
