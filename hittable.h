@@ -73,8 +73,26 @@ public:
         output_box = bbox;
         return hasbox;
     }
+};
 
+class flip_face: public hittable {
+public:
+    shared_ptr<hittable> objptr;
+public:
+    flip_face(shared_ptr<hittable> _objptr): objptr(_objptr) {}
 
+    virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const override {
+
+        if (!objptr->hit(r, t_min, t_max, rec)) {
+            return false;
+        }
+        rec.front_face = !rec.front_face;
+        return true;
+    }
+
+    virtual bool bounding_box(double time0, double time1, aabb& output_box) const override {
+        return objptr->bounding_box(time0, time1, output_box);
+    }
 };
 
 rotate_y::rotate_y(shared_ptr<hittable> _objptr, double angle): objptr(_objptr) {

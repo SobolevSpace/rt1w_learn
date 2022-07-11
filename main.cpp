@@ -107,7 +107,7 @@ hittable_list cornell_box() {
     
     objects.add(make_shared<yz_rect>(0, 555, 0, 555, 555, green));
     objects.add(make_shared<yz_rect>(0, 555, 0, 555, 0, red));
-    objects.add(make_shared<xz_rect>(213, 343, 227, 332, 554, light));
+    objects.add(make_shared<flip_face>(make_shared<xz_rect>(213, 343, 227, 332, 554, light)));
     objects.add(make_shared<xz_rect>(0, 555, 0, 555, 0, white));
     objects.add(make_shared<xz_rect>(0, 555, 0, 555, 555, white));
     objects.add(make_shared<xy_rect>(0, 555, 0, 555, 555, white));
@@ -213,12 +213,30 @@ color ray_color(const ray& r, const color& bg, const hittable& world, int depth)
     if (!world.hit(r, 0.001, INF, hit_rec)) return bg;
 
     ray scattered;
-    color emitted = hit_rec.mat_ptr->emitted(hit_rec.u, hit_rec.v, hit_rec.p);
+    color emitted = hit_rec.mat_ptr->emitted(hit_rec.u, hit_rec.v, hit_rec, hit_rec.p);
     double pdf = 0.0;
     color albedo;
     if (!hit_rec.mat_ptr->scatter(r, hit_rec, albedo, scattered, pdf)) {
         return emitted;
     }
+    vec3 on_light = point3(random_double(213, 343), 554, random_double(227, 332));
+    vec3 to_light = on_light - hit_rec.p;
+    double dist2 = to_light.length_sqr();
+    to_light = unit_vector(to_light);
+
+    if (dot(to_light, hit_rec.normal) < 0) {
+        return emitted;
+    }
+
+    double light_area = (343-213)*(332-227);
+    double light_cos = fabs(to_light.y());
+    if (light_cos < 1e-6) {
+        return emitted;
+    }
+
+    pdf = dist2/light_cos/light_area;
+    scattered = ray(hit_rec.p, to_light, r.time());
+
     return emitted + albedo * 
     hit_rec.mat_ptr->scattering_pdf(r, hit_rec, scattered) * 
     ray_color(scattered, bg, world, depth-1) / pdf;
@@ -289,7 +307,7 @@ int main(int, char**) {
             world = cornell_box();
             aspect_ratio = 1.0;
             image_width = 600;
-            spp = 100;
+            spp = 10;
             background = color(0, 0, 0);
             lookfrom = point3(278, 278, -800);
             lookat = point3(278, 278, 0);

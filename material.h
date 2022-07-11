@@ -22,7 +22,7 @@ public:
     }
 
     virtual color emitted(
-        double u, double v, const vec3& p
+        double u, double v, const hit_record& hit_rec, const vec3& p
     ) const {
         return color(0, 0, 0);
     }
@@ -118,9 +118,11 @@ public:
     }
 
     virtual color emitted(
-        double u, double v, const vec3& p
+        double u, double v, const hit_record& hit_rec, const vec3& p
     ) const override{
-        return emit->value(u, v, p);
+        if (hit_rec.front_face)
+            return emit->value(u, v, p);
+        else return vec3(0, 0, 0);
     }
 };
 
