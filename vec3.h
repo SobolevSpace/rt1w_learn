@@ -132,6 +132,15 @@ vec3 random_in_unit_disk() {
     }
 }
 
+vec3 random_cosine_direction() {
+    double r1 = random_double(), r2 = random_double();
+    double z = sqrt(1-r2);
+    double phi = 2*PI*r1;
+    double x = cos(phi)*sqrt(r2);
+    double y = sin(phi)*sqrt(r2);
+    return vec3(x, y, z);
+}
+
 vec3 reflect(const vec3& v, const vec3& n) {
     return v - 2*dot(v, n)*n;
 }

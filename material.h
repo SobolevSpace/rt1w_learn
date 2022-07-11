@@ -3,6 +3,7 @@
 #include "common.h"
 #include "hittable.h"
 #include "texture.h"
+#include "onb.h"
 
 struct hit_record;
 
@@ -37,11 +38,13 @@ public:
     virtual bool scatter(
         const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out, double& pdf
     ) const override {
-        vec3 scatter_dir = random_in_hemisphere(hit_rec.normal);
+        onb uvw;
+        uvw.build_from_w(hit_rec.normal);
+        vec3 scatter_dir = uvw.local(random_cosine_direction());
         if (scatter_dir.near_zero()) scatter_dir = hit_rec.normal;
         r_out = ray(hit_rec.p, unit_vector(scatter_dir), r_in.time());
         attenuation = albedo->value(hit_rec.u, hit_rec.v, hit_rec.p);
-        pdf = 0.5 / PI;
+        pdf = dot(uvw.w(), r_out.direction()) / PI;
         return true;
     }
 
