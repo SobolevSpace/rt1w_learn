@@ -13,6 +13,7 @@
 #include "constant_medium.h"
 
 #include <iostream>
+#include <iomanip>
 
 hittable_list two_spheres() {
     hittable_list world;
@@ -212,13 +213,15 @@ color ray_color(const ray& r, const color& bg, const hittable& world, int depth)
     if (!world.hit(r, 0.001, INF, hit_rec)) return bg;
 
     ray scattered;
-    color attenuation;
     color emitted = hit_rec.mat_ptr->emitted(hit_rec.u, hit_rec.v, hit_rec.p);
-
-    if (!hit_rec.mat_ptr->scatter(r, hit_rec, attenuation, scattered)) {
+    double pdf = 0.0;
+    color albedo;
+    if (!hit_rec.mat_ptr->scatter(r, hit_rec, albedo, scattered, pdf)) {
         return emitted;
     }
-    return emitted + attenuation * ray_color(scattered, bg, world, depth-1);
+    return emitted + albedo * 
+    hit_rec.mat_ptr->scattering_pdf(r, hit_rec, scattered) * 
+    ray_color(scattered, bg, world, depth-1) / pdf;
 }
 
 int main(int, char**) {
@@ -234,7 +237,7 @@ int main(int, char**) {
     color background(0, 0, 0);
     hittable_list world;
 
-    switch(0) {
+    switch(6) {
         case 1: {
             world = random_scene();
             background = color(0.7, 0.8, 1);
@@ -286,7 +289,7 @@ int main(int, char**) {
             world = cornell_box();
             aspect_ratio = 1.0;
             image_width = 600;
-            spp = 200;
+            spp = 100;
             background = color(0, 0, 0);
             lookfrom = point3(278, 278, -800);
             lookat = point3(278, 278, 0);

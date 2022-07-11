@@ -9,8 +9,16 @@ struct hit_record;
 class material{
 public:
     virtual bool scatter(
-        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out
-    ) const = 0;
+        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out, double& pdf
+    ) const {
+        return false;
+    }
+
+    virtual double scattering_pdf(
+        const ray& r_in, const hit_record& hit_rec, const ray& r_out
+    ) const {
+        return 0.0;
+    }
 
     virtual color emitted(
         double u, double v, const vec3& p
@@ -27,13 +35,21 @@ public:
     lambertian(shared_ptr<texture> _albedo): albedo(_albedo) {}
 
     virtual bool scatter(
-        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out
+        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out, double& pdf
     ) const override {
-        vec3 scatter_dir = hit_rec.normal + random_unit_vector();
+        vec3 scatter_dir = random_in_hemisphere(hit_rec.normal);
         if (scatter_dir.near_zero()) scatter_dir = hit_rec.normal;
-        r_out = ray(hit_rec.p, scatter_dir, r_in.time());
+        r_out = ray(hit_rec.p, unit_vector(scatter_dir), r_in.time());
         attenuation = albedo->value(hit_rec.u, hit_rec.v, hit_rec.p);
+        pdf = 0.5 / PI;
         return true;
+    }
+
+    virtual double scattering_pdf(
+        const ray& r_in, const hit_record& hit_rec, const ray& r_out
+    ) const {
+        double cosine = dot(unit_vector(r_out.direction()), hit_rec.normal);
+        return cosine > 0.0? cosine/PI: 0.0;
     }
 };
 
@@ -45,7 +61,7 @@ public:
     metal(color& _albedo, double _fuzz): albedo(_albedo), fuzz(_fuzz<1?_fuzz:1) {}
 
     virtual bool scatter(
-        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out
+        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out, double& pdf
     ) const override {
         vec3 scatter_dir = reflect(unit_vector(r_in.direction()), hit_rec.normal);
         r_out = ray(hit_rec.p, scatter_dir + fuzz * random_unit_vector(), r_in.time());
@@ -60,7 +76,7 @@ public:
 public:
     dielectric(double _ir): ir(_ir) {}
     virtual bool scatter(
-        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out
+        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out, double& pdf
     ) const override {
         attenuation = color(1.0, 1.0, 1.0);
         double refract_ratio = hit_rec.front_face?(1.0/ir):ir;
@@ -93,7 +109,7 @@ public:
     diffuse_light(shared_ptr<texture> _emit): emit(_emit) {}
 
     virtual bool scatter(
-        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out
+        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out, double& pdf
     ) const override {
         return false;
     }
@@ -113,7 +129,7 @@ public:
     isotropic(shared_ptr<texture> _albedo): albedo(_albedo) {}
     
     virtual bool scatter(
-        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out
+        const ray& r_in, const hit_record& hit_rec, color& attenuation, ray& r_out, double& pdf
     ) const override {
         r_out = ray(hit_rec.p, random_in_unit_sphere(), r_in.time());
         attenuation = albedo->value(hit_rec.u, hit_rec.v, hit_rec.p);
