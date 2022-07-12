@@ -141,6 +141,15 @@ vec3 random_cosine_direction() {
     return vec3(x, y, z);
 }
 
+vec3 random_to_sphere(double radius, double dist2) {
+    double r1 = random_double(), r2 = random_double();
+    double costheta = sqrt(1-radius*radius/dist2);
+    double z = 1 + (costheta-1)*r1;
+    double x = cos(2*PI*r2)*sqrt(1-z*z);
+    double y = sin(2*PI*r2)*sqrt(1-z*z);
+    return vec3(x, y, z);
+}
+
 vec3 reflect(const vec3& v, const vec3& n) {
     return v - 2*dot(v, n)*n;
 }

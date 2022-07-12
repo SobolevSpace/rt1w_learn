@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hittable.h"
+#include "onb.h"
 
 class sphere: public hittable {
 public:
@@ -23,6 +24,25 @@ public:
     virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const override;
 
     virtual bool bounding_box(double time0, double time1, aabb& output_box) const override;
+
+    virtual double pdf_value(const point3& p, const vec3& dir) const {
+        hit_record hit_rec;
+        if (!hit(ray(p, dir, 0), 0.001, INF, hit_rec)) {
+            return 0.0;
+        }
+        double cos_theta_max = sqrt(1-radius*radius/(center-p).length_sqr());
+        double solid_angle = 2*PI*(1-cos_theta_max);
+
+        return 1/solid_angle;
+    }
+
+    virtual vec3 random(const point3& p) const override{
+        vec3 direction = center - p;
+        double dist2 = direction.length_sqr();
+        onb uvw;
+        uvw.build_from_w(direction);
+        return uvw.local(random_to_sphere(radius, dist2));
+    }
 };
 
 

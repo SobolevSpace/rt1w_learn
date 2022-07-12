@@ -105,6 +105,8 @@ hittable_list cornell_box() {
     shared_ptr<material> green = make_shared<lambertian>(color(0.12, 0.45, 0.15));
     shared_ptr<material> white = make_shared<lambertian>(color(0.73, 0.73, 0.73));
     shared_ptr<material> light = make_shared<diffuse_light>(color(15, 15, 15));
+
+    shared_ptr<material> aluminum = make_shared<metal>(color(0.8, 0.85, 0.88), 0.0);
     
     objects.add(make_shared<yz_rect>(0, 555, 0, 555, 555, green));
     objects.add(make_shared<yz_rect>(0, 555, 0, 555, 0, red));
@@ -120,7 +122,11 @@ hittable_list cornell_box() {
     box2 = make_shared<rotate_y>(box2, -18);
     box2 = make_shared<translate>(box2, vec3(130, 0, 65));
     objects.add(box1);
-    objects.add(box2);
+    //objects.add(box2);
+
+    auto glass = make_shared<dielectric>(1.5);
+    objects.add(make_shared<sphere>(point3(190,90,190), 90 , glass));
+
     return objects;
 }
 
@@ -212,18 +218,20 @@ color ray_color(const ray& r, const color& bg, const hittable& world, shared_ptr
     if (depth <= 0) return color(0, 0, 0);
 
     if (!world.hit(r, 0.001, INF, hit_rec)) return bg;
-
-    ray scattered;
-    color emitted = hit_rec.mat_ptr->emitted(hit_rec.u, hit_rec.v, hit_rec, hit_rec.p);
-    double pdf_val = 0;
-    color albedo;
-    if (!hit_rec.mat_ptr->scatter(r, hit_rec, albedo, scattered, pdf_val)) {
+    
+    scatter_record srec;
+    color emitted = hit_rec.mat_ptr->emitted(r, hit_rec, hit_rec.u, hit_rec.v, hit_rec.p);
+    if (!hit_rec.mat_ptr->scatter(r, hit_rec, srec)) {
         return emitted;
     }
-    mixture_pdf m_pdf(make_shared<cosine_pdf>(hit_rec.normal), make_shared<hittable_pdf>(lights, hit_rec.p));
-    scattered = ray(hit_rec.p, m_pdf.generate(), r.time());
-    pdf_val = m_pdf.value(scattered.direction());
-    return emitted + albedo * 
+    if (srec.is_specular) {
+        return srec.attenuation * ray_color(srec.specular_ray, bg, world, lights, depth-1);
+    }
+    auto light_pdf = make_shared<hittable_pdf>(lights, hit_rec.p);
+    mixture_pdf m_pdf(light_pdf, srec.pdf_ptr);
+    ray scattered = ray(hit_rec.p, m_pdf.generate(), r.time());
+    double pdf_val = m_pdf.value(scattered.direction());
+    return emitted + srec.attenuation * 
     hit_rec.mat_ptr->scattering_pdf(r, hit_rec, scattered) * 
     ray_color(scattered, bg, world, lights, depth-1) / pdf_val;
 }
@@ -293,8 +301,8 @@ int main(int, char**) {
         case 6: {
             world = cornell_box();
             
-            shared_ptr<material> light = make_shared<diffuse_light>(color(7, 7, 7));
-            lights = make_shared<xz_rect>(213, 343, 227, 332, 554, light);
+            lights = make_shared<sphere>(point3(190, 90, 190), 90, shared_ptr<material>());
+            //lights = make_shared<xz_rect>(213, 343, 227, 332, 554, shared_ptr<material>());
             aspect_ratio = 1.0;
             image_width = 600;
             spp = 1000;
@@ -360,6 +368,7 @@ int main(int, char**) {
                 double u = (i + random_double())/(image_width-1);
                 double v = (j + random_double())/(image_height-1);
                 pixel_color += ray_color(cam.get_ray(u, v), background, world, lights, max_depth);
+                
             }
             write_color(std::cout, pixel_color, spp);
         }
