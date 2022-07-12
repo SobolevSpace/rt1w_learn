@@ -8,6 +8,7 @@
 #include "aarect.h"
 #include "box.h"
 #include "bvh.h"
+#include "pdf.h"
 
 #include "material.h"
 #include "constant_medium.h"
@@ -206,7 +207,7 @@ hittable_list final_scene() {
 }
 
 
-color ray_color(const ray& r, const color& bg, const hittable& world, int depth) {
+color ray_color(const ray& r, const color& bg, const hittable& world, shared_ptr<hittable> lights, int depth) {
     hit_record hit_rec;
     if (depth <= 0) return color(0, 0, 0);
 
@@ -214,32 +215,17 @@ color ray_color(const ray& r, const color& bg, const hittable& world, int depth)
 
     ray scattered;
     color emitted = hit_rec.mat_ptr->emitted(hit_rec.u, hit_rec.v, hit_rec, hit_rec.p);
-    double pdf = 0.0;
+    double pdf_val = 0;
     color albedo;
-    if (!hit_rec.mat_ptr->scatter(r, hit_rec, albedo, scattered, pdf)) {
+    if (!hit_rec.mat_ptr->scatter(r, hit_rec, albedo, scattered, pdf_val)) {
         return emitted;
     }
-    vec3 on_light = point3(random_double(213, 343), 554, random_double(227, 332));
-    vec3 to_light = on_light - hit_rec.p;
-    double dist2 = to_light.length_sqr();
-    to_light = unit_vector(to_light);
-
-    if (dot(to_light, hit_rec.normal) < 0) {
-        return emitted;
-    }
-
-    double light_area = (343-213)*(332-227);
-    double light_cos = fabs(to_light.y());
-    if (light_cos < 1e-6) {
-        return emitted;
-    }
-
-    pdf = dist2/light_cos/light_area;
-    scattered = ray(hit_rec.p, to_light, r.time());
-
+    mixture_pdf m_pdf(make_shared<cosine_pdf>(hit_rec.normal), make_shared<hittable_pdf>(lights, hit_rec.p));
+    scattered = ray(hit_rec.p, m_pdf.generate(), r.time());
+    pdf_val = m_pdf.value(scattered.direction());
     return emitted + albedo * 
     hit_rec.mat_ptr->scattering_pdf(r, hit_rec, scattered) * 
-    ray_color(scattered, bg, world, depth-1) / pdf;
+    ray_color(scattered, bg, world, lights, depth-1) / pdf_val;
 }
 
 int main(int, char**) {
@@ -254,6 +240,7 @@ int main(int, char**) {
     double aperture = 0.0;
     color background(0, 0, 0);
     hittable_list world;
+    shared_ptr<hittable> lights;
 
     switch(6) {
         case 1: {
@@ -305,9 +292,12 @@ int main(int, char**) {
 
         case 6: {
             world = cornell_box();
+            
+            shared_ptr<material> light = make_shared<diffuse_light>(color(7, 7, 7));
+            lights = make_shared<xz_rect>(213, 343, 227, 332, 554, light);
             aspect_ratio = 1.0;
             image_width = 600;
-            spp = 10;
+            spp = 1000;
             background = color(0, 0, 0);
             lookfrom = point3(278, 278, -800);
             lookat = point3(278, 278, 0);
@@ -369,7 +359,7 @@ int main(int, char**) {
             for (int _=0;_<spp;_++) {
                 double u = (i + random_double())/(image_width-1);
                 double v = (j + random_double())/(image_height-1);
-                pixel_color += ray_color(cam.get_ray(u, v), background, world, max_depth);
+                pixel_color += ray_color(cam.get_ray(u, v), background, world, lights, max_depth);
             }
             write_color(std::cout, pixel_color, spp);
         }

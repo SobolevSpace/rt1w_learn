@@ -59,6 +59,23 @@ public:
         output_box = aabb(point3(x0, k-1e-4, z0), point3(x1, k+1e-4, z1));
         return true;
     }
+
+    
+    virtual double pdf_value(const point3& p, const vec3& dir) const override{
+        hit_record hit_rec;
+        if (!this->hit(ray(p, dir, 0), 0.0001, INF, hit_rec)) {
+            return 0;
+        }
+        double dist2 = dir.length_sqr()*hit_rec.t*hit_rec.t;
+        double area = (z1-z0)*(x1-x0);
+        double costheta = fabs(dot(hit_rec.normal, unit_vector(dir)));
+        return dist2/(area*costheta);
+    }
+
+    virtual vec3 random(const point3& p) const override {
+        vec3 rand_in_rect = vec3(random_double(x0, x1), k, random_double(z0, z1));
+        return rand_in_rect - p;
+    }
 };
 
 bool xz_rect::hit(const ray& r, double t_min, double t_max, hit_record& rec) const {

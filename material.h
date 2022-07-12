@@ -26,6 +26,7 @@ public:
     ) const {
         return color(0, 0, 0);
     }
+
 };
 
 class lambertian: public material {
@@ -124,6 +125,7 @@ public:
             return emit->value(u, v, p);
         else return vec3(0, 0, 0);
     }
+
 };
 
 class isotropic: public material {
